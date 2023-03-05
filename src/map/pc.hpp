@@ -13,6 +13,7 @@
 #include <common/mmo.hpp> // JOB_*, MAX_FAME_LIST, struct fame_list, struct mmo_charstatus
 #include <common/strlib.hpp>// StringBuf
 #include <common/timer.hpp>
+#include <lua.hpp>
 
 #include "battleground.hpp"
 #include "buyingstore.hpp" // struct s_buyingstore
@@ -938,6 +939,11 @@ public:
 	s_macro_detect macro_detect;
 
 	std::vector<uint32> party_booking_requests;
+
+	struct {
+		lua_State* LuaInstance;
+		enum e_execution_state script_state;
+	} lua_container;
 };
 
 extern struct eri *pc_sc_display_ers; /// Player's SC display table
