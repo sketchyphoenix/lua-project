@@ -10,13 +10,11 @@
 
 #include "pc.hpp"
 
-enum e_engine_version { LUA,ATHENA };
 enum e_execution_state { NOT_RUNNING } lua_execution_state;
 
 
 class ScriptEngine {
 public:
-	enum e_engine_version version;
 	virtual void ExecuteFunction(const char* function_name, const int& character_id, const char* format, ...) {};
 };
 
@@ -28,6 +26,8 @@ public:
 	LuaEngineBase::LuaEngineBase();
 
 	void ExecuteFunction(const char* function_name, const int& character_id, const char* format, ...) override;
-
 	void GetCharacter(lua_State* LuaInstance, map_session_data* session_data, int stack_position);
+	~LuaEngineBase();
 };
+
+

@@ -8,6 +8,8 @@
 
 #include <common/showmsg.hpp>
 
+LuaEngineBase LuaEngine;
+
 /**
  * Create a global Lua thread,
  * Add a parameter named "char_id" as param #1 on the stack
@@ -24,18 +26,37 @@
  * they are passed as objects on a command basis.
 **/
 
+static int testfunc(lua_State* LuaInstance)
+{
+	const char* stack1 = luaL_checkstring(LuaEngine.LuaInstance, 1);
+	int stack2 = luaL_checkinteger(LuaEngine.LuaInstance, 2);
+	std::cout << stack1 << " " << stack2 << std::endl;
+	return 0;
+}
+
 LuaEngineBase::LuaEngineBase()
 {
     LuaInstance = luaL_newstate();
 	luaL_openlibs(LuaInstance);	
-	lua_pushliteral(LuaInstance,"char_id");
-	lua_pushnumber(LuaInstance,0);
-	lua_rawset(LuaInstance, LUA_REGISTRYINDEX);
+	//lua_pushliteral(LuaInstance,"char_id");
+	//lua_pushnumber(LuaInstance,0);
+	//lua_rawset(LuaInstance, LUA_REGISTRYINDEX);
+	lua_register(LuaInstance, "testfunc", testfunc);
 
+	std::string chunk = "var = \"Hello, World!\"";
+	luaL_dostring(LuaInstance, chunk.c_str());
+	lua_getglobal(LuaInstance, "var");
+	std::cout << "var is: " << (const char*)lua_tostring(LuaInstance, -1) << std::endl;
+
+	luaL_dofile(LuaInstance, "script/test.lua");
 }
 
-LuaEngineBase LuaEngine;
 
+
+LuaEngineBase::~LuaEngineBase()
+{
+	lua_close(LuaInstance);
+}
 
 /*
 static struct command_table {
@@ -43,10 +64,6 @@ static struct command_table {
 	lua_CFunction function_name;
 };
 */
-
-
-#define BUILDIN_FUNC(x) lua_register(LuaEngine.LuaInstance, #x, ##x); \
-			static int buildin_ ## x (LuaEngine.LuaInstance)
 
 
 /**
@@ -58,7 +75,7 @@ static struct command_table {
 * Player scripts run on the player's local thread
 *
 * Add the player's character ID to their thread's global index
-* Do some type checking to make sure the arguments are valid in Lua before putting them on the stack
+* Perform checking to make sure the arguments are valid in Lua before putting them on the stack
 **/
 void LuaEngineBase::ExecuteFunction(const char* function_name, const int& character_id, const char* format, ...)
 {
@@ -67,17 +84,19 @@ void LuaEngineBase::ExecuteFunction(const char* function_name, const int& charac
 	int iter = 0;
 	lua_State* lua_state_ref = LuaInstance;
 
-	if (character_id > 0) {
-		sd = map_charid2sd(character_id);
-		if (sd->lua_container.script_state != NOT_RUNNING) {
-			return;
-		}
-		sd->lua_container.LuaInstance = lua_newthread(LuaInstance);
-		lua_state_ref = sd->lua_container.LuaInstance;
-		lua_pushliteral(lua_state_ref, "character_id");
-		lua_pushnumber(lua_state_ref, character_id);
-		lua_rawset(lua_state_ref, LUA_REGISTRYINDEX);
+	if (character_id <= 0) {
+		return;
 	}
+
+	sd = map_charid2sd(character_id);
+	if (sd->lua_container.script_state != NOT_RUNNING) {
+		return;
+	}
+	sd->lua_container.LuaInstance = lua_newthread(LuaInstance);
+	lua_state_ref = sd->lua_container.LuaInstance;
+	lua_pushliteral(lua_state_ref, "character_id");
+	lua_pushnumber(lua_state_ref, character_id);
+	lua_rawset(lua_state_ref, LUA_REGISTRYINDEX);
 
 	lua_getglobal(lua_state_ref, function_name);
 
@@ -128,3 +147,8 @@ void LuaEngineBase::GetCharacter(lua_State* LuaInstance, map_session_data* sessi
 	lua_rawget(LuaInstance, LUA_REGISTRYINDEX);
 	lua_pop(LuaInstance, 1);
 }
+
+
+#define BUILDIN_FUNC(x) lua_register(LuaEngine.LuaInstance, #x, ##x); \
+			static int buildin_ ## x (LuaEngine.LuaInstance)
+
