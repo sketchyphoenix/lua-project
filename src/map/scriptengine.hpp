@@ -10,8 +10,11 @@
 
 #include "pc.hpp"
 
-enum e_execution_state { NOT_RUNNING } lua_execution_state;
-
+enum e_execution_state {
+	NOT_RUNNING = 0,
+	WINDOW_NEXT,
+	WINDOW_CLOSE
+};
 
 class ScriptEngine {
 public:
@@ -22,11 +25,12 @@ public:
 class LuaEngineBase : ScriptEngine {
 public:
 	lua_State* LuaInstance;
-
+	int owner_id;
 	LuaEngineBase::LuaEngineBase();
 
 	void ExecuteFunction(const char* function_name, const int& character_id, const char* format, ...) override;
-	void GetCharacter(lua_State* LuaInstance, map_session_data* session_data, int stack_position);
+	map_session_data* GetCharacter(lua_State* LuaInstance, map_session_data* session_data, int stack_position);
+	void RegisterCFunctions(lua_State* LuaInstance);
 	~LuaEngineBase();
 };
 
