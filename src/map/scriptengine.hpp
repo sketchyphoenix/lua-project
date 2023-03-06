@@ -10,6 +10,8 @@
 
 #include "pc.hpp"
 
+#define LUAFUNC_MAX_NAME 50
+
 enum e_execution_state {
 	NOT_RUNNING = 0,
 	WINDOW_NEXT,

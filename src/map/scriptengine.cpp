@@ -7,8 +7,11 @@
 #include "scriptengine.hpp"
 #include "script.hpp"
 #include "pc.hpp"
+#include "map.hpp"
+#include "npc.hpp"
 
 #include <common/showmsg.hpp>
+#include <common/db.hpp>
 
 LuaEngineBase LuaEngine;
 
@@ -179,6 +182,55 @@ BUILDIN_FUNC(close)
 	clif_scriptclose(sd, sd->npc_id);
 	sd->lua_container.script_state = WINDOW_CLOSE;
 	return lua_yield(LuaInstance, 0);
+}
+
+BUILDIN_FUNC(addnpc)
+{
+	struct npc_data* nd;
+	char name[NAME_LENGTH], displayed_name[NAME_LENGTH], map_name[MAP_NAME_LENGTH_EXT], lua_function_name[LUAFUNC_MAX_NAME];
+	short map_id, x, y, direction, sprite_code;
+
+	std::snprintf(displayed_name, sizeof(displayed_name), "%s", luaL_checkstring(LuaInstance, 1));
+	std::snprintf(name, sizeof(name), "%s", luaL_checkstring(LuaInstance, 2));
+	std::snprintf(map_name, sizeof(map_name), "%s", luaL_checkstring(LuaInstance, 3));
+	map_id = map_mapname2mapid(map_name);
+	x = short (luaL_checkinteger(LuaInstance, 4));
+	y = short (luaL_checkinteger(LuaInstance, 5));
+	direction = short (luaL_checkinteger(LuaInstance, 6));
+	sprite_code = short (luaL_checkinteger(LuaInstance, 7));
+	std::snprintf(lua_function_name, sizeof(lua_function_name), "%s", luaL_checkstring(LuaInstance, 8));
+
+	CREATE(nd, struct npc_data, 1);
+	new (nd) npc_data();
+	nd->bl.id = npc_get_new_npc_id();
+	nd->bl.prev = nd->bl.next = nullptr;
+	nd->bl.m = map_id;
+	nd->bl.x = x;
+	nd->bl.y = y;
+	nd->sc_display = nullptr;
+	nd->sc_display_count = 0;
+	//nd->vd = npc_viewdb[0];
+	nd->dynamicnpc.owner_char_id = 0;
+	nd->dynamicnpc.last_interaction = 0;
+	nd->dynamicnpc.removal_tid = INVALID_TIMER;
+	nd->class_ = sprite_code;
+	nd->speed = 200;
+	nd->bl.type = BL_NPC;
+	nd->subtype = NPCTYPE_SCRIPT;
+
+	map_addnpc(map_id, nd);
+	status_change_init(&nd->bl);
+	unit_dataset(&nd->bl);
+	nd->ud.dir = uint8 (direction);
+	npc_setcells(nd);
+	if (map_addblock(&nd->bl)) {
+		lua_pushnil(LuaInstance);
+		return 1;
+	}
+	map_addiddb(&nd->bl);
+	//strdb_put(npcname_db, nd->exname, nd);
+
+	return 0;
 }
 
 void LuaEngineBase::RegisterCFunctions(lua_State* LuaInstance)

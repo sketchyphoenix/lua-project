@@ -217,6 +217,12 @@ struct npc_data {
 		int removal_tid;
 	} dynamicnpc;
 
+	struct {
+		bool luatype;
+		char* lua_function;
+		enum e_execution_state script_state;
+	} lua_container;
+
 #ifdef MAP_GENERATOR
 	struct navi_link navi; // for warps and the src of npcs
 	std::vector<navi_link> links; // for extra links, like warper npc
